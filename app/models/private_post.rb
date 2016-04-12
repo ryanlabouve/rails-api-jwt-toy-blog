@@ -1,0 +1,1 @@
+class PrivatePost < Post; end

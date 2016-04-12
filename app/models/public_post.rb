@@ -1,0 +1,1 @@
+class PublicPost < Post; end
