@@ -1,11 +1,14 @@
-# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+valid:
+  title: 'Post Title'
+  body: 'Post Body Blah blah'
+  type: 'PublicPost'
 
-one:
-  title: MyString
-  body: MyText
-  type: 
+public_post:
+  title: 'Post Title'
+  body: 'Post Body Blah blah'
+  type: 'PublicPost'
 
-two:
-  title: MyString
-  body: MyText
-  type: 
+private_post:
+  title: 'Post Title'
+  body: 'Post Body Blah blah'
+  type: 'PrivatePost'
