@@ -9,6 +9,7 @@ gem 'spring', :group => :development
 gem 'bcrypt'
 gem 'jsonapi-resources'
 gem 'knock'
+gem 'faker'
 
 
 gem 'sqlite3'
