@@ -8,6 +8,7 @@ gem 'rails-api'
 gem 'spring', :group => :development
 gem 'bcrypt'
 gem 'jsonapi-resources'
+gem 'knock'
 
 
 gem 'sqlite3'
