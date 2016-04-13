@@ -2,27 +2,25 @@
 
 Here's the goal:
 
-	 Rails API that has secure resources (via JWT) and non-secure resources and is JSON API compliant.
+	 Quick and simple Rails API that is JSON API compliant and has secure resources (via JWT) and non-secure resources.
 
-Our scenario: We have a blog that has public posts, accessible by anyone, and private posts, only accessible to users who are logged in.
+Our scenario: 
 
+	An read-only API to power a blog that has public posts (accessible by anyone) and private posts (only accessible to users who are logged in).
 
 Notes:
-
-* Posts will be a base class for PrivatePosts and PublicPosts.
 * JWT authentication will be implemented using [knock](https://github.com/nsarno/knock)
 * JSON API compliance will be accomplished via [JSONAPI::Resources](https://github.com/cerebris/jsonapi-resources)
-* I'll link out to relevant tests, with comments on what's being test, but try to keep the article terse.
+* I'll link out to relevant tests, with comments on what's being test, but try to keep the article quick.
 
-Let's get started `rails-api new rails-api-jwt-toy-blog`.
+At any point, feel free to checkout the finished [code](https://github.com/ryanlabouve/rails-api-jwt-toy-blog). Let's get started `rails-api new rails-api-jwt-toy-blog`.
 
 ## The Models
 
-For the schema, we want `Post(title:string, body:text, type:string` where type will for STI.
+Posts will be a base class for PrivatePosts and PublicPosts. For the schema, we want `Post(title:string, body:text, type:string)` where the `type` colum will for `singe-table inheritance` to make the PublicPost and PrivatePost inherit gracefully form Post.
 
 (For more on single-table inheritance, check out (this post)[http://blog.arkency.com/2013/07/sti/])
 
- 
 ### Post Model
 
 ```
@@ -31,7 +29,7 @@ touch app/models/private_post.rb
 touch app/models/public_post.rb
 ```
 
-Then I went ahead and setup public post and private post as subclasses. This will come in handy later when we setup our resources.
+Then I went ahead and setup `PublicPost` and `PrivatePost` as classes that inherit from `Post`. This will come in handy later when we setup our resources.
 
 ```
 # app/models/public_post.rb
@@ -62,14 +60,18 @@ class Post < ActiveRecord::Base
 end
 ```
 
+At this point, we should have green tests and a working Post, PublicPost, and PrivatePost model. On to `User`.
+
 ### User Resource
 
-Here we want a `User` model that implements Rail's [`has_secure_password`](http://api.rubyonrails.org/classes/ActiveModel/SecurePassword/ClassMethods.html
-). Using `has_secure_password`, When we create a `User`, we'll pass in a `password` and `password_confirmation`, rails will then encrypt and save as `password_digest`.
+`User` is what will log in to view `PrivatePosts`.
 
-You'll need to add `gem 'bcrypt'` to your Gemfile if you are using Rails API for `has_secure_password` to work.
+We want the `User` model to implement Rail's [`has_secure_password`](http://api.rubyonrails.org/classes/ActiveModel/SecurePassword/ClassMethods.html
+). Using `has_secure_password`, when we create a `User`, we'll pass in a `password` and `password_confirmation`, rails will then encrypt and save their password as `password_digest`. We'll be able to use this as a building block to later auth our users.
 
-For the schema, we want `User(email:string, name:email, password_digest:string` where `password_digest` is for `has_secure_password`.
+If you are using Rails Api, you'll need to add `gem 'bcrypt'` to your Gemfile.
+
+For the schema, we want `User(email:string, name:email, password_digest:string` where `password_digest` is required for `has_secure_password` to work.
 
 ```
 rails g model user password_digest:string name:string email:string
@@ -89,10 +91,12 @@ class User < ActiveRecord::Base
   validates :email, presence: true
 end
 ```
- 
+
+At this point we have a working user model and green tests!
+
 ### Seeding Posts and Users
 
-So now, to give us some posts and users to play with, we'll create some seeds.
+Now  we'll create some seeds to give us some posts and users to play with.
 
 Go ahead and add `gem 'faker'` to your Gemfile and `bundle install`.
 
@@ -121,9 +125,19 @@ User.create!({
 end
 ```
 
+After this can run `bundle exec rake db:seed` and verify this worked in `rails console`.
+
+```
+rails c
+> PublicPost.length # => 100
+> PublicPost.first # => <PublicPost Object>
+```
+
 ## Controllers and Resources and Routing Oh My!
 
-Now's when we'll need to introduce [JSONAPI::Resources](https://github.com/cerebris/jsonapi-resources) by adding `gem 'jsonapi-resources'` to your gemfile.
+Now that we have our models and some dummy data, we'll want to expose it to the world by setting up our controllers, resources, and routing.
+
+Let's introduce [JSONAPI::Resources](https://github.com/cerebris/jsonapi-resources) to the project by adding `gem 'jsonapi-resources'` to the Gemfile.
 
 ### Public Posts
 
@@ -170,9 +184,9 @@ We are using [Knock](https://github.com/nsarno/knock) to do JWT auth. Let's go a
 
 Add `gem 'knock'` to your Gemfile and `bundle install`.
 
-run `rails generate knock:install`. This will add `config/initializers/knock.rb`, which you may want to peruse the comments.
+Run `rails generate knock:install`. This will add `config/initializers/knock.rb`, which you may want to peruse the comments for additional configuration options.
 
-Mount the engine in your `routes.rb`. 
+Mount the engine in your `routes.rb` to expose our authentication endpoints.
 
 ```
 # config/routes.rb
@@ -181,7 +195,7 @@ mount Knock::Engine => "/knock"
 ...
 ```
 
-Add the `Knock::Authenticable` module in ApplicationController
+Add the `Knock::Authenticable` module in ApplicationController to expose Knock authentication methods to our controllers.
 
 ```
 class ApplicationController < ActionController::API
@@ -189,7 +203,7 @@ class ApplicationController < ActionController::API
 end
 ```
 
-Then later we will be able to add `before_action :authenticate` to our `PrivatePosts` controller.
+Then later we will be able to add `before_action :authenticate` to our `PrivatePosts` controller to preform the actual authentication.
 
 ([code checkpoint](https://github.com/ryanlabouve/rails-api-jwt-toy-blog/commit/2fd20fce149887ce7cc4a7f3de0551eab210c528))
 
@@ -208,9 +222,9 @@ class PrivatePostsController < ApplicationController
 end
 ```
 
-Next, let's write the tests for the `PublicPosts`.
+Next, let's write the tests for the `PrivatePosts`.
 
-We want to `GET /public-posts` for authorized users and a `401` for unathroized users. Same things for the show routes of `GET /public-posts/:id`. Then, we should not be able to create, edit or delete. (Here are the [tests]())
+We want to `GET /public-posts` for authorized users and a `401` for unathroized users. Same things for the show routes of `GET /public-posts/:id`. Then, we should not be able to create, edit or delete. (Here are the [tests](https://github.com/ryanlabouve/rails-api-jwt-toy-blog/blob/147df98/test/controllers/private_posts_controller_test.rb))
 
 2. Generate `PrivatePosts` resource and add to your routes.rb.
 
@@ -243,11 +257,11 @@ end
 
 At this point, our tests are green and our challenge is complete!
 
-Feel free to go [check out the project]()
+Feel free to go [check out the project](https://github.com/ryanlabouve/rails-api-jwt-toy-blog)
 
 ## Curling for Sanity
 
-I've included the [Paw](https://luckymarmot.com/paw) file in the project: [here]().
+I've included the [Paw](https://luckymarmot.com/paw) file in the project: [here](https://github.com/ryanlabouve/rails-api-jwt-toy-blog/blob/master/MainRequests.paw).
 
 For the sake of being generic, below I'll walk through how this works via CURL. And, we'll assume you are running this project on port 3000. If you are not, you'll need to make slight adjustments below.
 
@@ -274,7 +288,7 @@ If you try the same request on private posts, you'll get a `401`. This is actual
 Highlights:
 
 * POST
-* Pass in the email and password of the user setup in [seeds](). 
+* Pass in the email and password of the user setup in [seeds](https://github.com/ryanlabouve/rails-api-jwt-toy-blog/blob/master/db/seeds.rb). 
 * Knock expects the request to be wrapped in a json object called auth. [Check the docs](https://github.com/nsarno/knock#authenticating-from-a-web-or-mobile-application) for more, and don't forget to check out the config file knock generaged for more customization options.
 
 ```
