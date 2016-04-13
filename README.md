@@ -1,3 +1,5 @@
+Original Article on http://ryanlabouve.com/jwt-rails-api-challenge/
+
 # JWT Rails API Challenge
 
 Here's the goal:
