@@ -10,6 +10,7 @@ gem 'bcrypt'
 gem 'jsonapi-resources'
 gem 'knock'
 gem 'faker'
+gem 'rack-cors', :require => 'rack/cors'
 
 
 gem 'sqlite3'
