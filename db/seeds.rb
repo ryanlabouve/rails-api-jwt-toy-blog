@@ -11,11 +11,11 @@ User.create!({
 100.times do
   PublicPost.create!(
     title: Faker::Lorem.sentence,
-    body: Faker::Lorem.paragraphs
+    body: Faker::Lorem.paragraphs.join(' ')
   )
 
   PrivatePost.create!(
     title: Faker::Lorem.sentence,
-    body: Faker::Lorem.paragraphs
+    body: Faker::Lorem.paragraphs.join(' ')
   )
 end
